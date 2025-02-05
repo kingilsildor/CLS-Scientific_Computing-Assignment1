@@ -41,7 +41,7 @@ cd repository
 ### Style Guide
 
 For controbuting to this project it is important to know the style used in this document.
-See the [STYLEGUIDE](STYLEGUIDE) file for details.
+See the [STYLEGUIDE](STYLEGUIDE.md) file for details.
 
 ## Usage
 
