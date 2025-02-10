@@ -17,7 +17,9 @@ def initialize_spatial_grid(L: float, N_spatial_steps: int) -> np.ndarray:
     --------
     - x_vec (np.ndarray): Spatial grid
     """
-    return np.linspace(0, L, N_spatial_steps)
+    grid = np.linspace(0, L, N_spatial_steps)
+    assert grid.shape == (N_spatial_steps,)
+    return grid
 
 
 def initialize_wave_field(
@@ -37,10 +39,16 @@ def initialize_wave_field(
     --------
     - phi (np.ndarray): Wave field
     """
+    assert callable(init_func)
+    assert x_vec.shape == (N_spatial_steps,)
+
     phi = np.zeros((N_spatial_steps, N_time_steps))
     phi[:, 0] = init_func(x_vec)
     phi[0, :], phi[-1, :] = 0.0, 0.0
     phi[:, 1] = phi[:, 0]
+
+    assert phi.shape == (N_spatial_steps, N_time_steps)
+    assert np.all(np.isfinite(phi))
     return phi
 
 
@@ -69,6 +77,8 @@ def update_wave_field(
     --------
     - phi (np.ndarray): Updated wave field
     """
+    assert phi.shape == (N_spatial_steps, N_time_steps)
+
     for t in range(1, N_time_steps - 1):
         for x in range(1, N_spatial_steps - 1):
             phi[x, t + 1] = (
@@ -76,6 +86,9 @@ def update_wave_field(
                 - phi[x, t - 1]
                 + (c * (dt / dx)) ** 2 * (phi[x + 1, t] - 2 * phi[x, t] + phi[x - 1, t])
             )
+
+    assert phi.shape == (N_spatial_steps, N_time_steps)
+    assert np.all(np.isfinite(phi))
     return phi
 
 
@@ -106,10 +119,13 @@ def animate_wave(
     - If output_file is None, the plot is displayed.
     - If output_file is not None, the animation is saved to the output_file.
     """
+    assert x_vec.shape == (phi.shape[0],)
+    assert phi.shape[1] == N_time_steps
+
     fig, ax = plt.subplots()
     (line,) = ax.plot(x_vec, phi[:, 0], "black")
     ax.set_xlabel("x")
-    ax.set_ylabel("u(x, t)")
+    ax.set_ylabel(r"$\Psi(x, t)$")
     ax.set_ylim(-1.5, 1.5)
 
     def _update(frame: int) -> plt.Line2D:
@@ -141,8 +157,8 @@ def animate_wave(
             plt.plot(x_vec, phi[:, t])
 
         plt.xlabel("x")
-        plt.ylabel("u(x, t)")
-        plt.title(f"1D Wave Equation Final State (t = {T:.2f})")
+        plt.ylabel(r"$\Psi(x, t)$")
+        plt.title(f"1D Wave Equation at t = {T:.2f}")
         plt.legend(
             [f"t = {t * dt:.2f}" for t in range(0, N_time_steps, n_steps)],
             loc="center left",
