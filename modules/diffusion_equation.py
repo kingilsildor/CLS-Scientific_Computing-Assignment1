@@ -74,7 +74,7 @@ def jacobi(grid, epsilon=1e-5, max_iterations=100000):
     results.append(grid)
     N = grid.shape[0] - 1
 
-    delta = 10000 # Just a big number
+    delta = float('inf')
     k = 0
 
     while delta > epsilon and k < max_iterations:
@@ -117,7 +117,7 @@ def gauss_seidel(grid, epsilon=1e-5, max_iterations=100000):
     results.append(grid.copy())
     N = grid.shape[0] - 1
 
-    delta = 10000 # Just a big number
+    delta = float('inf')
     k = 0
 
     while delta > epsilon and k < max_iterations:
