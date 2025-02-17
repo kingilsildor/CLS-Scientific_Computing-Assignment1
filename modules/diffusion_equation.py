@@ -56,7 +56,7 @@ def update_grid(grid, D, dt, dx, N_TIME_STEPS, smooth=False):
     ani.save("results/diffusion_simulation.mp4", writer="ffmpeg", fps=60)
 
 
-def jacobi(grid, epsilon=1e-5, max_iterations=100000):
+def jacobi(grid: np.ndarray, epsilon: float = 1e-5, max_iterations: int = 100000) -> np.ndarray:
     """
     Run the Jacobi method to solve the time independent diffusion equation
 
@@ -99,7 +99,7 @@ def jacobi(grid, epsilon=1e-5, max_iterations=100000):
     return results
 
 
-def gauss_seidel(grid, epsilon=1e-5, max_iterations=100000):
+def gauss_seidel(grid: np.ndarray, epsilon: float = 1e-5, max_iterations: int = 100000) -> np.ndarray:
     """
     Run the Gauss Seidel method to solve the time independent diffusion equation
 
@@ -130,7 +130,7 @@ def gauss_seidel(grid, epsilon=1e-5, max_iterations=100000):
 
             if np.abs(grid[i][0] - old_cell) > delta:
                 delta = np.abs(grid[i][0] - old_cell)
-
+                
         for j in range(1, N):
             for i in range(1, N):
                 old_cell = grid[i][j].copy()
@@ -154,7 +154,7 @@ def gauss_seidel(grid, epsilon=1e-5, max_iterations=100000):
     return results
 
 
-def diffusion_animation(results, save_animation=False, animation_name="diffusion.mp4"):
+def diffusion_animation(results: np.ndarray, save_animation: bool = False, animation_name: str = "diffusion.mp4") -> HTML:
     """
     Create an animation of the diffusion process
 
