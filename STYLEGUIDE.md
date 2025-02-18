@@ -110,6 +110,7 @@ def example_function(param1: int, param2: str) -> bool:
     Returns:
     ---------
     - bool: Description of the return value.
+    - Image is created, if it writes something to the machine
     """
     foo = True
     assert isinstance(foo, bool) 
