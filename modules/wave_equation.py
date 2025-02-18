@@ -45,7 +45,6 @@ def initialize_wave_field(
     phi = np.zeros((N_spatial_steps, N_time_steps))
     phi[:, 0] = init_func(x_vec)
     phi[0, :], phi[-1, :] = 0.0, 0.0
-    phi[:, 1] = phi[:, 0]
 
     assert phi.shape == (N_spatial_steps, N_time_steps)
     assert np.all(np.isfinite(phi))
@@ -79,6 +78,13 @@ def update_wave_field(
     """
     assert phi.shape == (N_spatial_steps, N_time_steps)
 
+    # Run the first time step
+    for x in range(1, N_spatial_steps - 1):
+        phi[x, 1] = phi[x, 0] + 0.5 * (c * dt / dx) ** 2 * (
+            phi[x + 1, 0] - 2 * phi[x, 0] + phi[x - 1, 0]
+        )
+
+    # Run the remaining time steps
     for t in range(1, N_time_steps - 1):
         for x in range(1, N_spatial_steps - 1):
             phi[x, t + 1] = (
