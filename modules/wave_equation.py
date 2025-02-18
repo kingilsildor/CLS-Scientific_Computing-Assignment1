@@ -96,28 +96,23 @@ def animate_wave(
     x_vec: np.ndarray,
     phi: np.ndarray,
     dt: float,
-    N_lines: int,
-    T: int,
     N_time_steps: int,
-    output_file: str | None = None,
+    save_location: str,
 ):
     """
-    Animate the wave equation and export it as a video file or plot every 10th frame.
+    Animate the wave equation and export it as a video file
 
     Params:
     -------
     - x_vec (np.ndarray): Spatial grid
     - phi (np.ndarray): Wave field
     - dt (float): Time step
-    - N_LINES (int): Number of lines to plot
-    - T (int): Length of the temporal domain
-    - N_TIME_STEPS (int): Number of time steps
-    - output_file (str | None): Name of the output video file. If None, plot every 10th frame.
+    - N_time_steps (int): Number of time steps
+    - save_location (str): Location to save the video file
 
     Returns:
     --------
-    - If output_file is None, the plot is displayed.
-    - If output_file is not None, the animation is saved to the output_file.
+    - Video file with the wave equation animation
     """
     assert x_vec.shape == (phi.shape[0],)
     assert phi.shape[1] == N_time_steps
@@ -144,40 +139,69 @@ def animate_wave(
         ax.set_title(f"1D Wave Equation Animation (t = {frame * dt:.2f})")
         return (line,)
 
-    if output_file is not None:
-        ani = animation.FuncAnimation(
-            fig, _update, frames=N_time_steps, interval=50, blit=True
-        )
-        ani.save(output_file, writer="ffmpeg", fps=30)
-        print(f"Animation saved to {output_file}")
-        plt.close()
-    else:
-        n_steps = N_time_steps // N_lines
-        for t in range(0, N_time_steps, n_steps):
-            plt.plot(x_vec, phi[:, t])
+    ani = animation.FuncAnimation(
+        fig, _update, frames=N_time_steps, interval=50, blit=True
+    )
+    
+    assert save_location.endswith(".mp4")
+    ani.save(save_location, writer="ffmpeg", fps=60)
+    plt.close()
 
-        plt.xlabel("x")
-        plt.ylabel(r"$\Psi(x, t)$")
-        plt.title(f"1D Wave Equation at t = {T:.2f}")
-        plt.legend(
-            [f"t = {t * dt:.2f}" for t in range(0, N_time_steps, n_steps)],
-            loc="center left",
-            bbox_to_anchor=(1, 0.5),
-        )
-        plt.ylim(-1.5, 1.5)
-        plt.tight_layout()
-        plt.show()
+
+def plot_wave(
+    x_vec: np.ndarray,
+    phi: np.ndarray,
+    N_lines: int,
+    N_time_steps: int,
+    save_location: str,
+):
+    """
+    Animate the wave equation and export it as a video file
+
+    Params:
+    -------
+    - x_vec (np.ndarray): Spatial grid
+    - phi (np.ndarray): Wave field
+    - N_lines (int): Number of lines to plot
+    - N_time_steps (int): Number of time steps
+    - save_location (str): Location to save the plot
+
+    Returns:
+    --------
+    - Plot of the wave equation
+    """
+    t_indices = np.linspace(0, N_time_steps - 1, N_lines, dtype=int)
+    assert len(t_indices) == N_lines
+
+    plt.figure(dpi=300)
+    for t in t_indices:
+        plt.plot(x_vec, phi[:, t], label=f"$t = {(t + 1) / 1000}$")
+
+    plt.xlabel("x", fontsize=14)
+    plt.ylabel(r"$\Psi(x, t)$", fontsize=14)
+    plt.title("Numerical solution for the 1D Wave Equation")
+    plt.legend(
+        loc="center left",
+        bbox_to_anchor=(1, 0.5),
+        frameon=False,
+    )
+    plt.tight_layout()
+
+    assert save_location.endswith(".png")
+    plt.savefig(save_location)
+    plt.show()
 
 
 def solve_wave_equation(
     L: float,
     T: float,
-    N_SPATIAL_STEPS: int,
-    N_TIME_STEPS: int,
+    N_spatial_steps: int,
+    N_time_steps: int,
     c: float,
-    N_LINES: int,
     init_func: callable,
-    output_file: str | None = None,
+    N_lines: int = 4,
+    animate: bool = False,
+    save_location: str = "results/wave_equation",
 ):
     """
     Solve the 1D wave equation and animate the results.
@@ -186,17 +210,46 @@ def solve_wave_equation(
     -------
     - L (float): Length of the spatial domain
     - T (float): Length of the temporal domain
-    - N_SPATIAL_STEPS (int): Number of spatial steps
-    - N_TIME_STEPS (int): Number of time steps
+    - N_spatial_steps (int): Number of spatial steps
+    - N_time_steps (int): Number of time steps
     - c (float): Wave speed
-    - N_LINES (int): Number of lines to plot
     - init_func (callable): Function to initialize the wave field
-    - output_file (str): Name of the output video file. If None, plot every 10th frame.
+    - N_lines (int): Number of lines to plot. Default is 4
+    - animate (bool): Whether to animate the wave equation. Default is False
+    - save_location (str): Location to save the results. Default is "results/wave_equation". File extension is added automatically
     """
-    dx, dt = L / N_SPATIAL_STEPS, T / N_TIME_STEPS
+    dx, dt = L / N_spatial_steps, T / N_time_steps
 
-    x_vec = initialize_spatial_grid(L, N_SPATIAL_STEPS)
-    phi = initialize_wave_field(N_SPATIAL_STEPS, N_TIME_STEPS, init_func, x_vec)
-    phi = update_wave_field(phi, c, N_TIME_STEPS, N_SPATIAL_STEPS, dt, dx)
+    x_vec = initialize_spatial_grid(L, N_spatial_steps)
+    phi = initialize_wave_field(N_spatial_steps, N_time_steps, init_func, x_vec)
+    phi = update_wave_field(phi, c, N_time_steps, N_spatial_steps, dt, dx)
+    
+    if animate:
+        save_location += ".mp4"
+        animate_wave(x_vec, phi, dt, N_time_steps, save_location)
+    else:
+        save_location += ".png"
+        plot_wave(x_vec, phi, N_lines, N_time_steps, save_location)
 
-    animate_wave(x_vec, phi, dt, N_LINES, T, N_TIME_STEPS, output_file)
+
+def main():
+    def init_one(x_vec):
+        return np.sin(2 * np.pi * x_vec)
+
+
+    def init_two(x_vec):
+        return np.sin(5 * np.pi * x_vec)
+
+
+    def init_three(x_vec):
+        return np.sin(5 * np.pi * x_vec) * ((1 / 5 < x_vec) & (x_vec < 2 / 5))
+    
+    L, T = 1.0, 0.5
+    N_SPATIAL_STEPS, N_TIME_STEPS = 100, 500
+    c = 1.0
+
+    solve_wave_equation(L, T, N_SPATIAL_STEPS, N_TIME_STEPS, c, init_two, animate=False)
+
+
+if "__name__" == main():
+    main()

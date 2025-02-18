@@ -1,5 +1,6 @@
 data/*
 results/*
+!results/*.png
 target/*
 modules/test.ipynb
-*__pycache__*
+**/__pycache__/*
