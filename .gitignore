@@ -1,7 +1,6 @@
 data/*
 results/*
-
-
-# Added by cargo
-
-/target
+!results/*.png
+target/*
+modules/test.ipynb
+**/__pycache__/*
