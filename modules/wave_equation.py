@@ -45,7 +45,6 @@ def initialize_wave_field(
     phi = np.zeros((N_spatial_steps, N_time_steps))
     phi[:, 0] = init_func(x_vec)
     phi[0, :], phi[-1, :] = 0.0, 0.0
-    phi[:, 1] = phi[:, 0]
 
     assert phi.shape == (N_spatial_steps, N_time_steps)
     assert np.all(np.isfinite(phi))
@@ -79,6 +78,13 @@ def update_wave_field(
     """
     assert phi.shape == (N_spatial_steps, N_time_steps)
 
+    # Run the first time step
+    for x in range(1, N_spatial_steps - 1):
+        phi[x, 1] = phi[x, 0] + 0.5 * (c * dt / dx) ** 2 * (
+            phi[x + 1, 0] - 2 * phi[x, 0] + phi[x - 1, 0]
+        )
+
+    # Run the remaining time steps
     for t in range(1, N_time_steps - 1):
         for x in range(1, N_spatial_steps - 1):
             phi[x, t + 1] = (
@@ -172,7 +178,7 @@ def animate_wave(
 def solve_wave_equation(
     L: float,
     T: float,
-    N_SPATIAL_STEPS: int,
+    N_INTERVALS: int,
     N_TIME_STEPS: int,
     c: float,
     N_LINES: int,
@@ -186,14 +192,16 @@ def solve_wave_equation(
     -------
     - L (float): Length of the spatial domain
     - T (float): Length of the temporal domain
-    - N_SPATIAL_STEPS (int): Number of spatial steps
+    - N_INTERVALS (int): Number of intervals to break the spatial domain into
     - N_TIME_STEPS (int): Number of time steps
     - c (float): Wave speed
     - N_LINES (int): Number of lines to plot
     - init_func (callable): Function to initialize the wave field
     - output_file (str): Name of the output video file. If None, plot every 10th frame.
     """
-    dx, dt = L / N_SPATIAL_STEPS, T / N_TIME_STEPS
+    dx, dt = L / N_INTERVALS, T / N_TIME_STEPS
+
+    N_SPATIAL_STEPS = N_INTERVALS + 1
 
     x_vec = initialize_spatial_grid(L, N_SPATIAL_STEPS)
     phi = initialize_wave_field(N_SPATIAL_STEPS, N_TIME_STEPS, init_func, x_vec)
