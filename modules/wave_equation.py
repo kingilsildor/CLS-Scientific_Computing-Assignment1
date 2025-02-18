@@ -230,26 +230,3 @@ def solve_wave_equation(
     else:
         save_location += ".png"
         plot_wave(x_vec, phi, N_lines, N_time_steps, save_location)
-
-
-def main():
-    def init_one(x_vec):
-        return np.sin(2 * np.pi * x_vec)
-
-
-    def init_two(x_vec):
-        return np.sin(5 * np.pi * x_vec)
-
-
-    def init_three(x_vec):
-        return np.sin(5 * np.pi * x_vec) * ((1 / 5 < x_vec) & (x_vec < 2 / 5))
-    
-    L, T = 1.0, 0.5
-    N_SPATIAL_STEPS, N_TIME_STEPS = 100, 500
-    c = 1.0
-
-    solve_wave_equation(L, T, N_SPATIAL_STEPS, N_TIME_STEPS, c, init_two, animate=False)
-
-
-if "__name__" == main():
-    main()
