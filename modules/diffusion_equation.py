@@ -1,12 +1,12 @@
-import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation
-from IPython.display import HTML
-import scipy.ndimage as ndimage
-from numba import njit
-from tqdm import tqdm
-from scipy.special import erfc
 import warnings
+
+import matplotlib.pyplot as plt
+import numpy as np
+from IPython.display import HTML
+from matplotlib.animation import FuncAnimation
+from numba import njit
+from scipy.special import erfc
+from tqdm import tqdm
 
 
 def init_grid(N: int, init_condition: str = "top") -> np.ndarray:
@@ -101,7 +101,7 @@ def calc_diffusion(
     -------
     - np.ndarray: Grid with heat diffusion over time
     """
-    if ((4 * D * dt) / (dx ** 2)) > 1:
+    if ((4 * D * dt) / (dx**2)) > 1:
         warnings.warn("Stability condition not met")
     diffusion_coefficient = (D * dt / dx) ** 2
     assert isinstance(diffusion_coefficient, float), "Invalid diffusion coefficient"
@@ -114,7 +114,7 @@ def calc_diffusion(
         # results[i] = ndimage.gaussian_filter(results[i - 1], sigma=0.4)
 
     # Option to write away the data
-    np.save("data/diffusion_grid.npy", results)
+    np.save("data/diffusion_result.npy", results)
 
     assert isinstance(results, np.ndarray), "Invalid grid type"
     assert results.shape == (N_time_steps, N, N), "Invalid grid shape"
@@ -248,77 +248,70 @@ def gauss_seidel(
     return results
 
 
-def animate_diffusion(grid: np.ndarray, skips: int = 2) -> None:
+def animate_diffusion(
+    results: np.ndarray,
+    skips: int = 2,
+    save_animation: bool = False,
+    animation_name: str = "diffusion.mp4",
+) -> HTML:
     """
     Animate the diffusion of heat in a grid
 
     Params
     ------
-    - grid (np.ndarray): Grid with heat diffusion
-    - skips (int): Number of frames to skip
+    - results (np.ndarray): Grid with heat diffusion over time
+    - skips (int): Number of frames to skip. Default: 2
+    - save_animation (bool): Save the animation as a video file. Default: False
+    - animation_name (str): Name of the animation file. Default: "diffusion.mp4"
 
     Returns
     -------
-    - Animation of heat diffusion over time
+    - HTML: Animation of the diffusion of heat in a grid
+    - Video file with the animation of the diffusion of heat in a grid
     """
-    steps = grid.shape[0]
+    results = results.copy()
+    steps = results.shape[0]
+
+    indices = np.linspace(0, steps - 1, num=steps, dtype=int)
+    results = results[indices]
+
+    steps = results.shape[0]
+    progress_bar = tqdm(total=steps, desc="Animating diffusion")
 
     fig, ax = plt.subplots()
-    cmap = plt.get_cmap("inferno")
-    im = ax.imshow(grid[0], cmap=cmap, interpolation="nearest")
+    init_grid = results[0]
+    im = ax.imshow(init_grid, cmap="inferno", interpolation="nearest")
     plt.colorbar(im)
 
-    total_steps = steps // skips
-    progress_bar = tqdm(total=total_steps, desc="Animating diffusion")
+    def _animate(frame):
+        """
+        Update the animation frame
 
-    def animate(frame):
-        im.set_array(grid[frame])
+        Params
+        ------
+        - frame (int): Frame number
+
+        Returns
+        -------
+        - im: Updated image
+
+        """
+        im.set_array(results[frame])
         ax.set_title(f"Time step {frame}")
         progress_bar.update(1)
+        return (im,)
 
-    ani = FuncAnimation(fig, animate, frames=total_steps, interval=50)
-    ani.save("results/heat_diffusion.mp4", writer="ffmpeg", fps=60)
+    ani = FuncAnimation(fig, _animate, frames=steps, interval=50, blit=True)
+    if save_animation:
+        ani.save(
+            "results/heat_diffusion.mp4",
+            writer="ffmpeg",
+            fps=60,
+        )
     progress_bar.close()
     plt.cla()
 
-
-def diffusion_animation(
-    results: np.ndarray,
-    save_animation: bool = False,
-    animation_name: str = "diffusion.mp4",
-) -> HTML:
-    """
-    Create an animation of the diffusion process
-
-    Params:
-    -------
-    - results (List[np.ndarray]): A list of spatial grids at each iteration
-    - save_animation (bool, optional): Whether to save the animation. Defaults to False.
-    - animation_name (str, optional): The name of the animation file. Defaults to "diffusion.mp4".
-
-    Returns:
-    --------
-    - HTML: The animation
-    """
-    # Set up the figure
-    init_grid = results[0]
-    fig = plt.figure()
-    im = plt.imshow(init_grid, cmap="inferno", interpolation="none", animated=True)
-    plt.colorbar()
-
-    # Animation function, called sequentally
-    def animate(i):
-        im.set_array(results[i])
-        return (im,)
-
-    # Call the animator
-    anim = FuncAnimation(fig, animate, frames=len(results), interval=200, blit=True)
-
-    # Save the animation as an mp4
-    if save_animation:
-        anim.save(animation_name, fps=30, extra_args=["-vcodec", "libx264"])
-
-    return HTML(anim.to_html5_video())
+    return HTML(ani.to_html5_video())
 
 
 def plot_grid(grid: np.ndarray, frame: int = -1):
@@ -342,69 +335,87 @@ def plot_grid(grid: np.ndarray, frame: int = -1):
     plt.show()
 
 
-def plot_analytical_solution():
-    D = 1
-    times = [0.001, 0.01, 0.1, 1]
-    y = np.linspace(0, 1, 100)
-
-
-    def analytical_solution(y, t, D, terms=50):
-        C = np.zeros_like(y)
-        for i in range(terms):
-            term1 = erfc((1 - y + 2 * i) / (2 * np.sqrt(D * t)))
-            term2 = erfc((1 + y + 2 * i) / (2 * np.sqrt(D * t)))
-            C += term1 - term2
-        return C
-
-
-    plt.figure(figsize=(6, 5))
-
-    for t in times:
-        C = analytical_solution(y, t, D)
-        plt.plot(y, C, label=f"t={t}")
-
-    plt.xlabel("y")
-    plt.ylabel("C")
-    plt.legend(title="Time")
-    plt.title("Analytical Solution of 2D Diffusion Equation")
-
-    plt.show()
-
-def plot_concentration(results: np.ndarray, times: np.ndarray):
+def analytical_solution(y, t, D, terms=50):
     """
-    Plot the concentration of a diffusing substance over time
+    Calculate the analytical solution of the diffusion equation
 
     Params:
     -------
-    - results (np.ndarray): The spatial grids at each time step
-    - times (np.ndarray): The times at which to plot the concentration
-    """
-    N = results[0].shape[0] - 1
-    y = np.linspace(0, 1, N + 1)
+    - y (np.ndarray): Spatial grid
+    - t (float): Time
+    - D (float): Diffusion coefficient
+    - terms (int): Number of terms in the series expansion. Default: 50
 
-    plt.figure(figsize=(6, 5))
+    Returns:
+    --------
+    - C (np.ndarray): Analytical solution of the diffusion equation
+    """
+    C = np.zeros_like(y)
+    for i in range(terms):
+        term1 = erfc((1 - y + 2 * i) / (2 * np.sqrt(D * t)))
+        term2 = erfc((1 + y + 2 * i) / (2 * np.sqrt(D * t)))
+        C += term1 - term2
+
+    assert isinstance(C, np.ndarray), "Invalid solution type"
+    assert C.shape == y.shape, "Invalid solution shape"
+    return C
+
+
+def plot_concentration(results: np.ndarray, times: np.ndarray):
+    """
+    Plot the concentration of a diffusing substance over time.
+
+    Params:
+    -------
+    - results (np.ndarray): The spatial grids at each time step.
+    - times (np.ndarray): The times at which to plot the concentration.
+
+    Returns:
+    --------
+    - Plot of the concentration of a diffusing substance over time.
+    """
+    assert isinstance(results, np.ndarray), "Invalid results type"
+    assert results.ndim == 3, "Invalid results shape"
+    steps, N = results.shape[0] - 1, results.shape[1] - 1
+    y = np.linspace(0, 1, N + 1)
+    y = np.flip(y)
+
+    plt.figure(dpi=300)
 
     for t in times:
-        frame = int(t / (0.001))
-        C = results[frame][N // 2]
-        plt.plot(y, C, label=f"t={t}")
+        frame = int(t * steps)
+        C_sim = results[frame, :, N // 2]
+        C_ana = analytical_solution(y, t, D=1)
+        assert C_sim.shape == C_ana.shape, "Invalid concentration shape"
+
+        (line,) = plt.plot(y, C_sim, label=f"t={t}")
+        plt.plot(y, C_ana, marker="o", linestyle="None", color=line.get_color())
+
+    plt.plot([], [], label="Simulated solutions (solid)", color="black")
+    plt.plot([], [], "o", label="Analytical solutions (dots)", color="black")
 
     plt.xlabel("y")
-    plt.ylabel("C")
-    plt.legend(title="Time")
-    plt.title("Concentration of Diffusing Substance Over Time")
+    plt.ylabel("concentration")
+    plt.title("Concentration of Diffusing over time")
+    plt.legend(
+        loc="upper left",
+        frameon=False,
+    )
+    plt.tight_layout()
 
+    plt.savefig("results/diffusion_concentration.png")
     plt.show()
 
 
 def main():
-    N = 50
+    N = 30
     D = 1
     dx = 1 / N
     dt = 0.001
     steps = 1_000_000
     result = calc_diffusion(N, steps, D, dx, dt)
-    # animate_diffusion(grid)
+    # result = np.load("data/diffusion_result.npy")
+    animate_diffusion(result, skips=1000, save_animation=True)
     # calculate_distance(grid)
     # plot_grid(result)
     plot_concentration(result, [0.001, 0.01, 0.1, 1])

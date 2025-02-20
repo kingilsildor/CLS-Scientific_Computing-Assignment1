@@ -1,6 +1,7 @@
 python==3.12.8
 
 ffmpeg==6.1.1
+ipython==8.30
 matplotlib==3.10.0
 numba==0.60.0
 numpy==2.0.2
