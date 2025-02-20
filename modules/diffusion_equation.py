@@ -5,6 +5,8 @@ from IPython.display import HTML
 import scipy.ndimage as ndimage
 from numba import njit
 from tqdm import tqdm
+from scipy.special import erfc
+import warnings
 
 
 def init_grid(N: int, init_condition: str = "top") -> np.ndarray:
@@ -60,13 +62,13 @@ def diffuse(grid: np.ndarray, diffusion_coefficient: float) -> np.ndarray:
     N = grid.shape[1]
     assert isinstance(N, int), "Invalid grid size"
 
-    for i in range(N):
-        for j in range(1, N - 1):
+    for i in range(1, N - 1):
+        for j in range(N):
             new_grid[i, j] += diffusion_coefficient * (
-                grid[(i + 1) % N, j]
-                + grid[(i - 1) % N, j]
-                + grid[i, j + 1]
-                + grid[i, j - 1]
+                grid[i + 1, j]
+                + grid[i - 1, j]
+                + grid[i, (j + 1) % N]
+                + grid[i, (j - 1) % N]
                 - 4 * grid[i, j]
             )
     new_grid[0, :], new_grid[-1, :] = 1, 0
@@ -99,6 +101,8 @@ def calc_diffusion(
     -------
     - np.ndarray: Grid with heat diffusion over time
     """
+    if ((4 * D * dt) / (dx ** 2)) > 1:
+        warnings.warn("Stability condition not met")
     diffusion_coefficient = (D * dt / dx) ** 2
     assert isinstance(diffusion_coefficient, float), "Invalid diffusion coefficient"
 
@@ -107,7 +111,7 @@ def calc_diffusion(
 
     for i in tqdm(range(1, N_time_steps), desc="Calculating diffusion"):
         results[i] = diffuse(results[i - 1], diffusion_coefficient)
-        results[i] = ndimage.gaussian_filter(results[i - 1], sigma=0.4)
+        # results[i] = ndimage.gaussian_filter(results[i - 1], sigma=0.4)
 
     # Option to write away the data
     np.save("data/diffusion_grid.npy", results)
@@ -339,7 +343,58 @@ def plot_grid(grid: np.ndarray, frame: int = -1):
 
 
 def plot_analytical_solution():
-    pass
+    D = 1
+    times = [0.001, 0.01, 0.1, 1]
+    y = np.linspace(0, 1, 100)
+
+
+    def analytical_solution(y, t, D, terms=50):
+        C = np.zeros_like(y)
+        for i in range(terms):
+            term1 = erfc((1 - y + 2 * i) / (2 * np.sqrt(D * t)))
+            term2 = erfc((1 + y + 2 * i) / (2 * np.sqrt(D * t)))
+            C += term1 - term2
+        return C
+
+
+    plt.figure(figsize=(6, 5))
+
+    for t in times:
+        C = analytical_solution(y, t, D)
+        plt.plot(y, C, label=f"t={t}")
+
+    plt.xlabel("y")
+    plt.ylabel("C")
+    plt.legend(title="Time")
+    plt.title("Analytical Solution of 2D Diffusion Equation")
+
+    plt.show()
+
+def plot_concentration(results: np.ndarray, times: np.ndarray):
+    """
+    Plot the concentration of a diffusing substance over time
+
+    Params:
+    -------
+    - results (np.ndarray): The spatial grids at each time step
+    - times (np.ndarray): The times at which to plot the concentration
+    """
+    N = results[0].shape[0] - 1
+    y = np.linspace(0, 1, N + 1)
+
+    plt.figure(figsize=(6, 5))
+
+    for t in times:
+        frame = int(t / (0.001))
+        C = results[frame][N // 2]
+        plt.plot(y, C, label=f"t={t}")
+
+    plt.xlabel("y")
+    plt.ylabel("C")
+    plt.legend(title="Time")
+    plt.title("Concentration of Diffusing Substance Over Time")
+
+    plt.show()
 
 
 def main():
@@ -347,11 +402,12 @@ def main():
     D = 1
     dx = 1 / N
     dt = 0.001
-    steps = 10000
+    steps = 1_000_000
     result = calc_diffusion(N, steps, D, dx, dt)
     # animate_diffusion(grid)
     # calculate_distance(grid)
-    plot_grid(result)
+    # plot_grid(result)
+    plot_concentration(result, [0.001, 0.01, 0.1, 1])
 
 
 if __name__ == "__main__":
