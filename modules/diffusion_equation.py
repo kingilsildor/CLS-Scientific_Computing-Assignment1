@@ -332,6 +332,15 @@ def plot_grid(grid: np.ndarray, frame: int = -1):
     cmap = plt.get_cmap("inferno")
     im = ax.imshow(grid[frame], cmap=cmap, interpolation="nearest")
     plt.colorbar(im)
+
+    if  frame == -1:
+        ax.set_title(f"Concentration at time step {grid.shape[0] - 1}")
+    else:
+        ax.set_title(f"Concentration at Time step {frame}")
+    plt.xlabel("x")
+    plt.ylabel("y")
+    plt.tight_layout()
+    plt.savefig("results/diffusion_grid.png")
     plt.show()
 
 
@@ -415,9 +424,8 @@ def main():
     steps = 1_000_000
     result = calc_diffusion(N, steps, D, dx, dt)
     # result = np.load("data/diffusion_result.npy")
-    animate_diffusion(result, skips=1000, save_animation=True)
-    # calculate_distance(grid)
-    # plot_grid(result)
+    # animate_diffusion(result, skips=1000, save_animation=True)
+    plot_grid(result)
     plot_concentration(result, [0.001, 0.01, 0.1, 1])
 
 
