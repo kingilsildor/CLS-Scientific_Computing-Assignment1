@@ -1,3 +1,5 @@
+import glob
+import os
 import warnings
 
 import matplotlib.pyplot as plt
@@ -84,7 +86,7 @@ def calc_diffusion(
     dx: float,
     dt: float,
     init_condition: str = "top",
-) -> np.ndarray:
+):
     """
     Calculate the diffusion of heat in a grid for each time step
 
@@ -99,26 +101,22 @@ def calc_diffusion(
 
     Returns
     -------
-    - np.ndarray: Grid with heat diffusion over time
+    - Write the results to a file
     """
     if ((4 * D * dt) / (dx**2)) > 1:
         warnings.warn("Stability condition not met")
     diffusion_coefficient = (D * dt / dx) ** 2
     assert isinstance(diffusion_coefficient, float), "Invalid diffusion coefficient"
 
-    results = np.zeros((N_time_steps, N, N))
-    results[0] = init_grid(N, init_condition)
+    output_dir = "data"
+    os.makedirs(output_dir, exist_ok=True)
+
+    grid = init_grid(N, init_condition)
+    np.save(os.path.join(output_dir, "diffusion_step_0.npy"), grid)
 
     for i in tqdm(range(1, N_time_steps), desc="Calculating diffusion"):
-        results[i] = diffuse(results[i - 1], diffusion_coefficient)
-        # results[i] = ndimage.gaussian_filter(results[i - 1], sigma=0.4)
-
-    # Option to write away the data
-    np.save("data/diffusion_result.npy", results)
-
-    assert isinstance(results, np.ndarray), "Invalid grid type"
-    assert results.shape == (N_time_steps, N, N), "Invalid grid shape"
-    return results
+        grid = diffuse(grid, diffusion_coefficient)
+        np.save(os.path.join(output_dir, f"diffusion_step_{i}.npy"), grid)
 
 
 @njit
@@ -249,7 +247,8 @@ def gauss_seidel(
 
 
 def animate_diffusion(
-    results: np.ndarray,
+    results: np.ndarray | None = None,
+    steps: int | None = None,
     skips: int = 2,
     save_animation: bool = False,
     animation_name: str = "diffusion.mp4",
@@ -259,7 +258,8 @@ def animate_diffusion(
 
     Params
     ------
-    - results (np.ndarray): Grid with heat diffusion over time
+    - results (np.ndarray): Grid with heat diffusion over time. Default: None
+    - steps (int): Number of time steps. Default: None
     - skips (int): Number of frames to skip. Default: 2
     - save_animation (bool): Save the animation as a video file. Default: False
     - animation_name (str): Name of the animation file. Default: "diffusion.mp4"
@@ -269,11 +269,38 @@ def animate_diffusion(
     - HTML: Animation of the diffusion of heat in a grid
     - Video file with the animation of the diffusion of heat in a grid
     """
-    results = results.copy()
-    steps = results.shape[0]
+    if results is None:
+        assert steps is not None, "Invalid number of steps"
+        init_grid = np.load("data/diffusion_step_0.npy")
+        indices = np.linspace(0, steps - 1, num=skips, dtype=int)
 
-    indices = np.linspace(0, steps - 1, num=steps, dtype=int)
-    results = results[indices]
+        results = np.zeros((len(indices), *init_grid.shape))
+
+        def _load_data(results: np.ndarray, indices: np.ndarray) -> np.ndarray:
+            """
+            Load the diffusion data
+
+            Params
+            ------
+            - results (np.ndarray): Grid with heat diffusion over time
+            - indices (np.ndarray): Indices to load the data
+
+            Returns
+            -------
+            - np.ndarray: Updated grid with heat diffusion over time
+            """
+            for i, frame in enumerate(indices):
+                results[i] = np.load(f"data/diffusion_step_{frame}.npy")
+            return results
+
+        results = _load_data(results, indices)
+    else:
+        assert isinstance(results, np.ndarray), (
+            "Invalid results type, should be np.ndarray"
+        )
+
+        indices = np.arange(0, results.shape[0], skips)
+        results = results[indices]
 
     steps = results.shape[0]
     progress_bar = tqdm(total=steps, desc="Animating diffusion")
@@ -314,33 +341,72 @@ def animate_diffusion(
     return HTML(ani.to_html5_video())
 
 
-def plot_grid(grid: np.ndarray, frame: int = -1):
+def plot_grid(frame: int = 999999, times: list | None = None):
     """
-    Plot the grid with heat diffusion at a specific time step
+    Plot the grid with heat diffusion at a specific time step.
+    If multiple time steps are provided, it arranges them in a 2x2 layout.
 
     Params
     ------
-    - grid (np.ndarray): Grid with heat diffusion
-    - frame (int): Time step to plot. Default: -1 (last time step)
+    - frame (int): Time step to plot. Default: 999999.
+    - times (list of float, optional): Specific time steps to plot.
 
     Returns
     -------
-    - Plot of the grid with heat diffusion at a specific time step
+    - Displays and saves the heat diffusion plots.
     """
-    fig, ax = plt.subplots()
-
-    cmap = plt.get_cmap("inferno")
-    im = ax.imshow(grid[frame], cmap=cmap, interpolation="nearest")
-    plt.colorbar(im)
-
-    if  frame == -1:
-        ax.set_title(f"Concentration at time step {grid.shape[0] - 1}")
+    if times is None:
+        frames = [frame]
+        rows, cols = 1, 1
+        figsize = (5, 5)
     else:
-        ax.set_title(f"Concentration at Time step {frame}")
-    plt.xlabel("x")
-    plt.ylabel("y")
-    plt.tight_layout()
-    plt.savefig("results/diffusion_grid.png")
+        assert isinstance(times, list), "Invalid times type"
+        assert all(isinstance(t, float) for t in times), "Invalid times values"
+
+        frames = [int(t * 1_000_000) - 1 for t in times]
+        rows, cols = 2, 2
+        figsize = (8, 8)
+
+        while len(frames) < rows * cols:
+            frames.append(frames[-1])
+
+    grids = [np.load(f"data/diffusion_step_{frame}.npy") for frame in frames]
+
+    fig, axes = plt.subplots(
+        rows,
+        cols,
+        figsize=figsize,
+        dpi=300,
+        gridspec_kw={"wspace": 0.1, "right": 0.85},
+    )
+    if times is not None:
+        fig.suptitle("Heat Diffusion Over Time", fontsize=14)
+
+    axes = np.array(axes).reshape(-1)
+
+    # Make it so that all plots share the same colorbar
+    vmin, vmax = min(grid.min() for grid in grids), max(grid.max() for grid in grids)
+    cmap = "inferno"
+
+    for ax, grid, frame in zip(axes, grids, frames):
+        im = ax.imshow(grid, cmap=cmap, vmin=vmin, vmax=vmax, interpolation="nearest")
+        ax.set_title(f"Time step {frame}", fontsize=10)
+        ax.set_xticks([])
+        ax.set_yticks([])
+
+    for ax in axes[len(frames) :]:
+        ax.axis("off")
+
+    # Anchor the colorbar to the right of the plots
+    cbar_ax = fig.add_axes([0.87, 0.2, 0.03, 0.6])
+    fig.colorbar(im, cax=cbar_ax)
+
+    save_path = (
+        "results/diffusion_grid.png"
+        if times is None
+        else "results/diffusion_grid_comparison.png"
+    )
+    plt.savefig(save_path, bbox_inches="tight")
     plt.show()
 
 
@@ -370,30 +436,30 @@ def analytical_solution(y, t, D, terms=50):
     return C
 
 
-def plot_concentration(results: np.ndarray, times: np.ndarray):
+def plot_concentration(steps: int, times: np.ndarray):
     """
     Plot the concentration of a diffusing substance over time.
 
     Params:
     -------
-    - results (np.ndarray): The spatial grids at each time step.
+    - steps (int): The number of time steps.
     - times (np.ndarray): The times at which to plot the concentration.
 
     Returns:
     --------
     - Plot of the concentration of a diffusing substance over time.
     """
-    assert isinstance(results, np.ndarray), "Invalid results type"
-    assert results.ndim == 3, "Invalid results shape"
-    steps, N = results.shape[0] - 1, results.shape[1] - 1
+    init_grid = np.load("data/diffusion_step_0.npy")
+    N = init_grid.shape[1] - 1
     y = np.linspace(0, 1, N + 1)
     y = np.flip(y)
 
     plt.figure(dpi=300)
 
     for t in times:
-        frame = int(t * steps)
-        C_sim = results[frame, :, N // 2]
+        frame = int(t * steps) - 1
+        grid = np.load(f"data/diffusion_step_{frame}.npy")
+        C_sim = grid[:, N // 2]
         C_ana = analytical_solution(y, t, D=1)
         assert C_sim.shape == C_ana.shape, "Invalid concentration shape"
 
@@ -416,17 +482,27 @@ def plot_concentration(results: np.ndarray, times: np.ndarray):
     plt.show()
 
 
+def delete_files():
+    """ "
+    Delete the files in the data directory
+    """
+    output_dir = "data"
+    files = glob.glob(f"{output_dir}/*")
+    for f in files:
+        os.remove(f)
+
+
 def main():
-    N = 30
-    D = 1
-    dx = 1 / N
-    dt = 0.001
-    steps = 1_000_000
-    result = calc_diffusion(N, steps, D, dx, dt)
-    # result = np.load("data/diffusion_result.npy")
-    # animate_diffusion(result, skips=1000, save_animation=True)
-    plot_grid(result)
-    plot_concentration(result, [0.001, 0.01, 0.1, 1])
+    # N = 30
+    # D = 1
+    # dx = 1 / N
+    # dt = 0.001
+    # steps = 1_000_000
+    # calc_diffusion(N, steps, D, dx, dt)
+
+    # animate_diffusion(steps=steps, skips=1000, save_animation=True)
+    plot_grid(times=[0.001, 0.01, 0.1, 1.0])
+    # plot_concentration(steps, [0.001, 0.01, 0.1, 1])
 
 
 if __name__ == "__main__":
