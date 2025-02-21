@@ -6,82 +6,74 @@
 
 - [Description](#description)
 - [Getting Started](#getting-started)
-- [Usage](#usage)
-- [Testing](#testing)
 - [File Descriptions](#file-descriptions)
 - [Contributors](#contributors)
 - [Git Fame](#git-fame)
-- [References](#references)
 - [License](#license)
 
 ## Description
 
-Provide a brief description of the project, its purpose, and key features.
+Within this repository simulations are created for solving heat diffusion in 2D and the wave equation in 1D.
 
 ## Getting Started
 
+### Installation
+First clone the repository.
+```bash
+git clone https://github.com/kingilsildor/CLS-Scientific_Computing-Assignment1
+cd repository
+```
+
 ### Prerequisites
 
-List any dependencies or requirements needed to run the project.
-
+To get the project running, install all the packages from the installer.
+For this the following command can be used:
 ```bash
 # Example
 pip install -r requirements.txt
 ```
 
-### Installation
-
-Steps to install and set up the project locally.
-
-```bash
-git clone https://github.com/yourusername/repository.git
-cd repository
-```
+### Interface
+Different modules can be run separately from their file.
+But the main inferface for the project is `interface.ipynb` in the root folder.
+This file uses all the functions that are important to run the code.
 
 ### Style Guide
 
 For controbuting to this project it is important to know the style used in this document.
 See the [STYLEGUIDE](STYLEGUIDE.md) file for details.
 
-## Usage
-
-Explain how to use the project with examples.
-
-```bash
-python main.py --option
-```
-
-## Testing
-
-Provide instructions on how to run tests.
-
-```bash
-pytest tests/
-```
 
 ## File Descriptions
 
 | File/Folder | Description |
 |------------|-------------|
-| `main.py` | Main script |
-| `config/` | Configuration files |
-| `tests/` | Test cases |
+| `interface.ipynb` | Interface for all the code |
+| `modules/diffusion_equation.py` | File for all the functions related to diffusion |
+| `modules/wave_equation.py` | File for all the functions related to the wave equation |
+| `data/*` | Store for the data that the functions will write |
+| `results/*`| Images and animations of the files |
 
 ## Contributors
 
 List all contributors to the project.
 
-- [Your Name](https://github.com/yourusername)
+- [Tycho Stam](https://github.com/kingilsildor)
 
 ## Git Fame
 
-```bash
-git fame
-```
+Total commits: 34
+Total ctimes: 388
+Total files: 28
+Total loc: 10466
+| Author            |   loc |   coms |   fils |  distribution   |
+|:------------------|------:|-------:|-------:|:----------------|
+| kingilsildor      | 10323 |     19 |     25 | 98.6/55.9/89.3  |
+| Anezka            |   143 |      7 |      3 | 1.4/20.6/10.7   |
+| Anezka Potesilova |     0 |      2 |      0 | 0.0/ 5.9/ 0.0   |
+| Tycho Stam        |     0 |      6 |      0 | 0.0/17.6/ 0.0   |
 
-## References
-
-Include any relevant references or links.
+Note: Tycho Stam -> kingilsildor
 
 ## License
 
