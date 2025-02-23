@@ -59,19 +59,22 @@ See the [STYLEGUIDE](STYLEGUIDE.md) file for details.
 List all contributors to the project.
 
 - [Tycho Stam](https://github.com/kingilsildor)
+- [Anezka Potesilova](https://github.com/anezkap)
+- [Michael MacFarlane Glasow](https://github.com/mdmg01)
 
 ## Git Fame
 
-Total commits: 34
-Total ctimes: 388
-Total files: 28
-Total loc: 10466
+Total commits: 36
+Total ctimes: 315
+Total files: 20
+Total loc: 6571
 | Author            |   loc |   coms |   fils |  distribution   |
 |:------------------|------:|-------:|-------:|:----------------|
-| kingilsildor      | 10323 |     19 |     25 | 98.6/55.9/89.3  |
-| Anezka            |   143 |      7 |      3 | 1.4/20.6/10.7   |
-| Anezka Potesilova |     0 |      2 |      0 | 0.0/ 5.9/ 0.0   |
-| Tycho Stam        |     0 |      6 |      0 | 0.0/17.6/ 0.0   |
+| kingilsildor      |  6001 |     20 |     12 | 91.3/55.6/60.0  |
+| mdmg01            |   427 |      1 |      5 | 6.5/ 2.8/25.0   |
+| Anezka            |   143 |      7 |      3 | 2.2/19.4/15.0   |
+| Anezka Potesilova |     0 |      2 |      0 | 0.0/ 5.6/ 0.0   |
+| Tycho Stam        |     0 |      6 |      0 | 0.0/16.7/ 0.0   |
 
 Note: Tycho Stam -> kingilsildor
 
